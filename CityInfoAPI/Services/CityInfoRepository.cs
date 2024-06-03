@@ -60,5 +60,32 @@ namespace CityInfoAPI.Services
         {
             context.PointOfInterest.Remove(pointOfInterest);
         }
+
+        public async Task<IEnumerable<City>> GetCitiesAsync(string? name, string? searchQuery)
+        {
+            if(String.IsNullOrEmpty(name) && String.IsNullOrWhiteSpace(searchQuery))
+            {
+                return await GetCitiesAsync();
+            }
+
+            var collection = context.Cities as IQueryable<City>;
+
+            if (!String.IsNullOrEmpty(name))
+            {
+                name = name.Trim();
+                collection = collection.Where(x => x.Name == name);
+            }
+
+            if(!String.IsNullOrEmpty(searchQuery))
+            {
+                searchQuery = searchQuery.Trim();
+                collection = collection.Where(x=> x.Name.Contains(searchQuery) ||
+                            (x.Description != null && x.Description.Contains(searchQuery)));
+            }
+
+            return await collection.OrderBy(y => y.Name).ToListAsync();
+       
+
+        }
     }
 }
