@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Asp.Versioning;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 
 namespace CityInfoAPI.Controllers
 {
-    [Route("api/file")]
+    [Route("api/v{version:apiVersion}/file")]
     [ApiController]
     public class FilesController : ControllerBase
     {
@@ -17,6 +18,7 @@ namespace CityInfoAPI.Controllers
         }
 
         [HttpGet("{fileName}")]
+        [ApiVersion(0.1,Deprecated = true)]
         public ActionResult GetFile(string fileName)
         {
             var filePath = "sample.pdf";

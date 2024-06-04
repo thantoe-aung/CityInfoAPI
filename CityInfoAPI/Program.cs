@@ -84,6 +84,13 @@ builder.Services.AddAuthorization(options =>
     });
 });
 
+builder.Services.AddApiVersioning(setupAction =>
+{
+    setupAction.ReportApiVersions = true;
+    setupAction.AssumeDefaultVersionWhenUnspecified = true;
+    setupAction.DefaultApiVersion = new Asp.Versioning.ApiVersion(1, 0);
+}).AddMvc();
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
