@@ -1,12 +1,14 @@
 ﻿using AutoMapper;
 using CityInfoAPI.Models;
 using CityInfoAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CityInfoAPI.Controllers
 {
     [ApiController]
+    [Authorize(Policy = "CityPolicy")]
     [Route("api/cities/{cityId}/pointofinterest")]
     public class PointOfInterestController : ControllerBase
     {
@@ -28,7 +30,14 @@ namespace CityInfoAPI.Controllers
         [HttpGet]
         public async Task<ActionResult> GetPointOfInterest(int cityId)
         {
+            var cityName = User.Claims.FirstOrDefault(x => x.Type == "city")?.Value;
         
+            //Add authorization policy
+            if(!await _cityInfoRepository.CityNameMatchCityId(cityId, cityName))
+            {
+                return Forbid();
+            }
+
             if (!await _cityInfoRepository.CityExistAsync(cityId))
             {
                 return NotFound();

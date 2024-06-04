@@ -62,6 +62,11 @@ namespace CityInfoAPI.Services
             context.PointOfInterest.Remove(pointOfInterest);
         }
 
+        public async Task<bool> CityNameMatchCityId(int cityId, string? cityName)
+        {
+            return await context.Cities.AnyAsync(x=> x.Id == cityId && x.Name == cityName);
+        }
+
         public async Task<(IEnumerable<City>, PaginationMetaData)> GetCitiesAsync(string? name, string? searchQuery, int pageNumber, int pageSize)
         {
             //if (String.IsNullOrEmpty(name) && String.IsNullOrWhiteSpace(searchQuery))
