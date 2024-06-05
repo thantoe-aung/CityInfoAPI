@@ -1,3 +1,4 @@
+using Asp.Versioning.ApiExplorer;
 using CityInfoAPI;
 using CityInfoAPI.DbContexts;
 using CityInfoAPI.Services;
@@ -5,6 +6,7 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using System.Reflection;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
@@ -38,7 +40,8 @@ builder.Services.AddProblemDetails();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+
 
 
 builder.Services.AddSingleton<FileExtensionContentTypeProvider>();
@@ -88,8 +91,55 @@ builder.Services.AddApiVersioning(setupAction =>
 {
     setupAction.ReportApiVersions = true;
     setupAction.AssumeDefaultVersionWhenUnspecified = true;
-    setupAction.DefaultApiVersion = new Asp.Versioning.ApiVersion(1, 0);
-}).AddMvc();
+    setupAction.DefaultApiVersion = new Asp.Versioning.ApiVersion(1);
+}).AddMvc()
+.AddApiExplorer(setupAction =>
+{
+    setupAction.SubstituteApiVersionInUrl = true;
+});
+
+var apiVersionDescProvider = builder.Services.BuildServiceProvider().GetRequiredService<IApiVersionDescriptionProvider>();
+
+builder.Services.AddSwaggerGen(setupAction =>
+{
+    foreach (var desc in apiVersionDescProvider.ApiVersionDescriptions)
+    {
+        setupAction.SwaggerDoc($"{desc.GroupName}", new()
+        {
+            Title = "City Info API",
+            Version = desc.ApiVersion.ToString(),
+            Description = "City informations"
+        });
+    }
+
+    var xmlCommentsFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlFilePath = Path.Combine(AppContext.BaseDirectory + xmlCommentsFile);
+
+    setupAction.IncludeXmlComments(xmlFilePath);
+
+    setupAction.AddSecurityDefinition("BearerAuth", new()
+    {
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        Description = "Input a valid token to access API"
+    });
+
+    setupAction.AddSecurityRequirement(new()
+{   {
+    new()
+    {
+        Reference = new Microsoft.OpenApi.Models.OpenApiReference
+        {
+            Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+            Id="BearerAuth" }
+        },
+        new List<string>()
+    }
+
+});
+
+});
+
 
 var app = builder.Build();
 
@@ -102,7 +152,14 @@ if (!app.Environment.IsDevelopment())
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(setupAction =>
+    {
+        var descriptions = app.DescribeApiVersions();
+        foreach (var desc in descriptions)
+        {
+            setupAction.SwaggerEndpoint($"/swagger/{desc.GroupName}/swagger.json", desc.GroupName.ToString());
+        }
+    });
 }
 
 app.UseHttpsRedirection();
